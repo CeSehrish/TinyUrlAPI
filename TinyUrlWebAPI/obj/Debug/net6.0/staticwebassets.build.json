@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "WIoWfR6Q5n7MDunE2s3g4kU0o77BpsAprmyu4SX75cA=",
+  "Source": "TinyUrlWebAPI",
+  "BasePath": "_content/TinyUrlWebAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
