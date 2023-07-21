@@ -1,9 +1,8 @@
-﻿using System.Net.Http;
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Text;
+using TinyUrlWebAPI.DAL;
+using TinyUrlWebAPI.Models;
 
 namespace TinyUrlWebAPI.Controllers
 {
@@ -12,11 +11,13 @@ namespace TinyUrlWebAPI.Controllers
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly TinyURLsDAL _tinyURLsDAL;
 
-        public HomeController(IConfiguration configuration)
+        public HomeController(IConfiguration configuration, TinyURLsDAL tinyURLsDAL)
         {
             _httpClient = new HttpClient();
             _configuration = configuration;
+            _tinyURLsDAL = tinyURLsDAL;
 
             var authorizationTokenRebrandly = _configuration["BitlyConfig:AuthorizationTokenRebrandly"];
             _httpClient.DefaultRequestHeaders.Add("Authorization", authorizationTokenRebrandly);
@@ -46,7 +47,7 @@ namespace TinyUrlWebAPI.Controllers
                 var response = await _httpClient.PostAsJsonAsync(endpoint, request);
                 response.EnsureSuccessStatusCode();
 
-                var result = await response.Content.ReadFromJsonAsync<BitlyShortenResponse>();
+                var result = await response.Content.ReadFromJsonAsync<TinyURLapiResponse>();
                 return Ok(result);
             }
             catch (Exception ex)
@@ -58,7 +59,7 @@ namespace TinyUrlWebAPI.Controllers
         }
         [HttpPost]
         [Route("getTinyUrl")]
-        public async Task<IActionResult> GetTinyUrl(string longUrl, string alias)
+        public async Task<IActionResult> GetTinyUrl(string longUrl, string alias, int userId)
         {
             var endpoint = _configuration["BitlyConfig:EndPointRebrandly"];
             var authorizationToken = _configuration["BitlyConfig:AuthorizationTokenRebrandly"];
@@ -82,34 +83,38 @@ namespace TinyUrlWebAPI.Controllers
                 httpClient.DefaultRequestHeaders.Add("apikey", authorizationToken);
                 var body = new StringContent(JsonConvert.SerializeObject(payload), UnicodeEncoding.UTF8, "application/json");
 
-                BitlyShortenResponse tempObj = new BitlyShortenResponse();
-                tempObj.shortUrl = "rebrand.ly/A_Ce_SLASHTAG";
+                /*TinyURLapiResponse tempObj = new TinyURLapiResponse();
+                tempObj.StatusCode = "Ok";
+                tempObj.shortUrl= "rebrand.ly/A_Ce_SLASHTAG";
+                
+                _tinyURLsDAL.AddUserData(tempObj, userId);
 
-                return Ok(tempObj);
-                /* using (var response = await httpClient.PostAsync("/v1/links", body))
-                 {
-                     if (response.StatusCode.ToString().ToLower() == "forbidden")
-                     {
-                         BitlyShortenResponse obj= new BitlyShortenResponse();
-                         obj.StatusCode = "forbidden";
-                         return Ok(obj);
-                     }
-                     response.EnsureSuccessStatusCode();
-                     var responseJson = await response.Content.ReadAsStringAsync();
-                     var result = JsonConvert.DeserializeObject<BitlyShortenResponse>(responseJson);
+                return Ok(tempObj);*/
+                using (var response = await httpClient.PostAsync("/v1/links", body))
+                {
+                    if (response.StatusCode.ToString().ToLower() == "forbidden")
+                    {
+                        TinyURLapiResponse obj = new TinyURLapiResponse();
+                        obj.statusCode = "forbidden";
+                        return Ok(obj);
+                    }
+                    response.EnsureSuccessStatusCode();
+                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var result = JsonConvert.DeserializeObject<TinyURLapiResponse>(responseJson);
+                    _tinyURLsDAL.AddUserData(result, userId);
 
-
-                     return Ok(result);
-                 }*/
+                    return Ok(result);
+                }
             }
 
         }
+        
 
     }
-    public class BitlyShortenResponse
+    /*public class BitlyShortenResponse
     {
         public string shortUrl { get; set; }
         public string StatusCode { get; set; }
 
-    }
+    }*/
 }
