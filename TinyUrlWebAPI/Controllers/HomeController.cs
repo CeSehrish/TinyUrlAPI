@@ -102,6 +102,7 @@ namespace TinyUrlWebAPI.Controllers
                     var responseJson = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<TinyURLapiResponse>(responseJson);
                     _tinyURLsDAL.AddUserData(result, userId);
+                    result.id = userId.ToString();
 
                     return Ok(result);
                 }
