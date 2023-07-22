@@ -12,21 +12,22 @@ namespace TinyUrlWebAPI.Controllers
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
         private readonly TinyURLsDAL _tinyURLsDAL;
-
+        
         public HomeController(IConfiguration configuration, TinyURLsDAL tinyURLsDAL)
         {
             _httpClient = new HttpClient();
             _configuration = configuration;
             _tinyURLsDAL = tinyURLsDAL;
 
-            var authorizationTokenRebrandly = _configuration["BitlyConfig:AuthorizationTokenRebrandly"];
-            _httpClient.DefaultRequestHeaders.Add("Authorization", authorizationTokenRebrandly);
+            var baseUriRebrandly = _configuration["RebrandlyConfig:BaseUriRebrandly"];
+            var authorizationToken = _configuration["RebrandlyConfig:AuthorizationTokenRebrandly"];
+            _httpClient.BaseAddress = new Uri(baseUriRebrandly.ToString());
+            _httpClient.DefaultRequestHeaders.Add("apikey", authorizationToken);
         }
         [HttpPost]
         [Route("getTinyUrlBitly")]
         public async Task<IActionResult> getTinyUrlBitly(string longpath)
         {
-
             try
             {
                 var endpoint = _configuration["BitlyConfig:Endpointbitly"];
@@ -61,36 +62,23 @@ namespace TinyUrlWebAPI.Controllers
         [Route("getTinyUrl")]
         public async Task<IActionResult> GetTinyUrl(string longUrl, string alias, int userId)
         {
-            var endpoint = _configuration["BitlyConfig:EndPointRebrandly"];
-            var authorizationToken = _configuration["BitlyConfig:AuthorizationTokenRebrandly"];
-            var baseUriRebrandly = _configuration["BitlyConfig:BaseUriRebrandly"];
-
+            string endPointRebrandly = _configuration["RebrandlyConfig:EndPointRebrandly"].ToString();
             var payload = new
             {
                 destination = longUrl,
-
                 domain = new
                 {
                     fullName = "rebrand.ly"
-                }
-                ,
+                },
                 slashtag = alias
                 //, title = "Rebrandly YouTube channel"
             };
 
-            using (var httpClient = new HttpClient { BaseAddress = new Uri(baseUriRebrandly.ToString()) })
+            try
             {
-                httpClient.DefaultRequestHeaders.Add("apikey", authorizationToken);
                 var body = new StringContent(JsonConvert.SerializeObject(payload), UnicodeEncoding.UTF8, "application/json");
 
-                /*TinyURLapiResponse tempObj = new TinyURLapiResponse();
-                tempObj.StatusCode = "Ok";
-                tempObj.shortUrl= "rebrand.ly/A_Ce_SLASHTAG";
-                
-                _tinyURLsDAL.AddUserData(tempObj, userId);
-
-                return Ok(tempObj);*/
-                using (var response = await httpClient.PostAsync("/v1/links", body))
+                using (var response = await _httpClient.PostAsync(endPointRebrandly, body))
                 {
                     if (response.StatusCode.ToString().ToLower() == "forbidden")
                     {
@@ -107,15 +95,19 @@ namespace TinyUrlWebAPI.Controllers
                     return Ok(result);
                 }
             }
-
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                return null;
+            }
         }
         
-
+        [HttpGet]
+        [Route("GetUserData")]
+        public List<UrlLink> GetUserData(int userId)
+        {
+            List<UrlLink> userLinks =  _tinyURLsDAL.GetUserData(userId); 
+            return userLinks;
+        }
     }
-    /*public class BitlyShortenResponse
-    {
-        public string shortUrl { get; set; }
-        public string StatusCode { get; set; }
-
-    }*/
 }

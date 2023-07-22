@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Net;
 using TinyUrlWebAPI.Models;
 
 namespace TinyUrlWebAPI.DAL
@@ -21,15 +18,30 @@ namespace TinyUrlWebAPI.DAL
             {
                 UrlLink urlLink = new UrlLink
                 {
-                    LongUrl = responseObj.destination,
-                    TinyUrl = responseObj.shortUrl,
-                    Alias = responseObj.slashtag,
+                    LongUrl = WebUtility.UrlEncode(responseObj.destination.Trim()),
+                    TinyUrl = responseObj.shortUrl.Trim(),
+                    Alias = responseObj.slashtag.Trim(),
                     UserId = userId 
                 };
 
                 _context.UrlLinks.Add(urlLink);
                 _context.SaveChanges();
             }
+
+        }
+        public List<UrlLink> GetUserData(int userId)
+        {
+            
+            var user = _context.Users.FirstOrDefault(u => u.Id == userId);
+            if (user != null)
+            {
+                using (var dbContext = new SennheiserTinyUrlsContext())
+                {
+                    var urlLinks = dbContext.UrlLinks.Where(link => link.UserId == userId).ToList();
+                    return urlLinks;
+                }
+            }
+            return null;
 
         }
 
